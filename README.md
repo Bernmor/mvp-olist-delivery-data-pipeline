@@ -1,8 +1,10 @@
 # MVP de Engenharia de Dados: pontualidade das entregas Olist
 
 **Disciplina:** MVP de pipeline de dados na nuvem, pós-graduação em Ciência de Dados e Analytics da PUC-Rio.
-**Situação verificada:** código e consultas preparados; os três CSVs foram analisados e as consultas SQL foram conferidas. A execução integral no Databricks, a persistência das tabelas e as capturas ainda precisam ser verificadas.
+**Situação verificada:** os CSVs foram enviados a um volume do Unity Catalog, seis tabelas Delta aparecem no catálogo e as consultas de qualidade e análise foram executadas em notebooks no Databricks Free Edition. As capturas abaixo mostram essas etapas e permitem confrontar os resultados com as consultas SQL do repositório.
 **Plataforma alvo:** Databricks Free Edition, Python/PySpark, SQL, volume do Unity Catalog e tabelas Delta. Google Colab não faz parte desta entrega.
+
+O [índice das evidências](evidencias/README.md) explica o que cada captura comprova; as imagens principais estão incorporadas nas seções do relatório.
 
 ## Contexto de Negócios e Perguntas
 
@@ -25,7 +27,7 @@ Uma taxa é nula quando o denominador é zero. Todas as consultas exibem tamanho
 
 ### Fonte e estrutura bruta
 
-A fonte original é [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce), publicada pela Olist no Kaggle. A página informa aproximadamente 100 mil pedidos de 2016 a 2018 e dados anonimizados. A licença indicada na página é [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/): atribuição, uso não comercial e compartilhamento pela mesma licença ao redistribuir material adaptado. Este projeto acadêmico atribui a fonte e descreve as transformações; os arquivos originais não são publicados no repositório. Os CSVs analisados registram compras de **04/09/2016 a 17/10/2018**; esse intervalo deve ser confirmado na nuvem pelo notebook 02.
+A fonte original é [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce), publicada pela Olist no Kaggle. A página informa aproximadamente 100 mil pedidos de 2016 a 2018 e dados anonimizados. A licença indicada na página é [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/): atribuição, uso não comercial e compartilhamento pela mesma licença ao redistribuir material adaptado. Este projeto acadêmico atribui a fonte e descreve as transformações; os arquivos originais não são publicados no repositório. O intervalo observado de compras é **04/09/2016 a 17/10/2018**, também exibido pelo notebook 05 no Databricks.
 
 | Arquivo bruto | Grão esperado | Colunas originais |
 | --- | --- | --- |
@@ -46,14 +48,17 @@ Os CSVs no volume são a camada bruta preservada. O diretório local data/raw/ e
 
 **Arquivos analisados em 27/09/2026:** os três CSVs foram disponibilizados no diretório ignorado data/raw/. A versão exata do download ainda não foi confirmada na página da fonte. Os arquivos usados na conferência têm as seguintes contagens e SHA-256, para conferir a cópia no volume:
 
-| Arquivo | Linhas locais | SHA-256 |
+| Arquivo | Linhas | SHA-256 |
 | --- | ---: | --- |
 | olist_orders_dataset.csv | 99.441 | 8df58ef3d2d7e9944010f7beecd9b75367f5588ec6e3c91cec19ae3345ef9ecf |
 | olist_order_items_dataset.csv | 112.650 | 0bc4d068c4fe38cbb01bd90e8746e3c613fe7b4baef75fab7b0e329701c3e279 |
 | olist_customers_dataset.csv | 99.441 | 983a422239e1712ded753b3bf9ecf47dc73f144d306029dcfa99e70a226883d2 |
 
-**Registro da carga na nuvem:** upload, tamanhos no volume e contagens Spark pendentes.
-**Evidências necessárias:** tela do upload e tela do Explorador de Catálogo mostrando os três arquivos no volume.
+O upload pela interface selecionou os três arquivos e o volume `workspace.olist_mvp_raw.originais`. Em seguida, o Explorador de Catálogo mostrou os três CSVs preservados nesse volume. A leitura Spark exibiu **99.441 pedidos, 112.650 itens e 99.441 clientes**, iguais às contagens dos arquivos utilizados na conferência.
+
+![Upload dos três CSVs para o volume gerenciado no Databricks](evidencias/01_upload_volume.png)
+
+![Arquivos originais no volume e tabelas criadas no Unity Catalog](evidencias/02_volume_e_tabelas.png)
 
 ## Modelagem e Catálogo de Dados
 
@@ -65,7 +70,7 @@ Uma junção direta de pedidos com itens geraria várias linhas para pedidos com
 
 ### Catálogo transcrito das tabelas Silver
 
-Cada linha abaixo descreve coluna, tipo pretendido, significado, domínio esperado e linhagem. Domínios são contratos de plausibilidade; os limites observados só serão declarados depois do perfilamento. Todas as tabelas têm comentário no Unity Catalog após a execução.
+Cada linha abaixo descreve coluna, tipo, significado, domínio esperado e linhagem. Os domínios são contratos de plausibilidade; os limites observados e as exceções aparecem na seção de qualidade. As tabelas persistidas têm descrições e comentários de colunas no Unity Catalog.
 
 **olist_mvp_silver.pedidos:** um registro tipado por pedido, vindo de olist_orders_dataset.csv; não há descarte de linhas.
 
@@ -140,7 +145,15 @@ Cada linha abaixo descreve coluna, tipo pretendido, significado, domínio espera
 | pedido_entregue_com_datas | INT | 1 para entregue com ambas as datas; 0 nos demais casos | Regra única em [indicadores_entrega.sql](sql/indicadores_entrega.sql) |
 | entrega_atrasada | INT | 1 para atraso, 0 para pontual, nulo fora da população elegível | Comparação das datas civis real e estimada na mesma regra SQL |
 
-O tipo decimal da soma está previsto como DECIMAL(28,2) pela regra de soma do Spark para entradas DECIMAL(18,2); será conferido por DESCRIBE TABLE após a execução. A interface do Unity Catalog deverá mostrar seis tabelas, comentários e colunas; as capturas reais serão inseridas nesta seção.
+O tipo decimal da soma está previsto como DECIMAL(28,2) pela regra de soma do Spark para entradas DECIMAL(18,2). As capturas do Unity Catalog mostram as tabelas Silver e Gold como objetos Delta gerenciados, com descrições e comentários de colunas. O catálogo transcrito acima cobre todas as colunas, inclusive as que não cabem na altura de uma única captura.
+
+**Catálogo Silver —** as três tabelas aparecem no painel à esquerda. As telas de Overview registram os comentários de [clientes](evidencias/04_catalogo_silver_clientes.png), [itens](evidencias/04_catalogo_silver_itens.png) e [pedidos](evidencias/04_catalogo_silver_pedidos.png).
+
+![Overview de clientes na camada Silver](evidencias/04_catalogo_silver_clientes.png)
+
+**Catálogo Gold —** o painel lista [dim_data](evidencias/05_catalogo_gold_data.png), [dim_localidade](evidencias/05_catalogo_gold_localidade.png) e [fato_pedidos](evidencias/05_catalogo_gold_fato.png).
+
+![Overview da fato de pedidos na camada Gold](evidencias/05_catalogo_gold_fato.png)
 
 ## Pipeline de Dados
 
@@ -162,7 +175,7 @@ As escritas são reexecutáveis com a mesma origem: overwrite substitui as tabel
 | Calendário e localidades distintos | Permitir agrupamento por mês e UF | Uma linha por data e por chave de localidade |
 | Elegibilidade e atraso | Evitar classificar pedidos não entregues | Inelegíveis têm entrega_atrasada nula; elegíveis têm 0 ou 1 |
 
-**Persistência observada:** pendente de execução no Databricks. Inserir capturas reais da lista de tabelas Silver e Gold e de seus esquemas após a execução.
+**Persistência observada:** o Explorador de Catálogo mostra os três CSVs no volume de origem, três tabelas em `olist_mvp_silver` e três em `olist_mvp_gold`, todos no catálogo `workspace`. A [captura conjunta](evidencias/02_volume_e_tabelas.png) e as telas de Overview acima comprovam a criação das tabelas Delta. A consulta final da fato exibiu **99.441 pedidos**, preservando o grão de pedido.
 
 ## Qualidade de Dados
 
@@ -170,17 +183,23 @@ O [notebook 02](notebooks/02_perfilamento_e_modelagem.ipynb) mede nulos e vazios
 
 | Verificação ou problema | Tratamento definido | Registros afetados | Efeito sobre a análise |
 | --- | --- | --- | --- |
-| Chaves de pedido, item ou cliente nulas/duplicadas | Interromper a carga e investigar; não escolher linha arbitrária | 0 nos CSVs analisados | Evita multiplicação e perda silenciosa |
-| Data real ausente em pedido não entregue | Manter nula, sem resultado de pontualidade | 2.957 nos CSVs analisados | Excluído apenas do denominador da taxa |
-| Data real ou prevista ausente em pedido marcado delivered | Manter nula e relatar separadamente | 8 sem data real; 0 sem previsão, nos CSVs analisados | Pedido inelegível; reduz o denominador |
-| Data ou valor monetário não conversível | Converter para nulo, contar falhas e preservar o arquivo original | 0 nas colunas analisadas dos CSVs | Pode reduzir elegibilidade ou impedir comparação por frete |
-| Preço/frete negativo ou extremo | Manter e medir; frete negativo aparece em faixa própria | 0 negativos; 8.427 preços e 11.613 fretes por item acima de Q3 + 1,5 × IQR, nos CSVs analisados | Nenhuma exclusão; extremos podem afetar médias, mas taxas por quartil usam contagens |
-| Item sem pedido, pedido sem item/cliente ou cronologia incoerente | Medir e examinar antes de interpretar | 0 itens órfãos, 775 pedidos sem itens, 0 sem cliente, 0 entregas antes da compra nos CSVs analisados | Fato preserva pedidos; 775 ficam sem medida monetária |
+| Chaves de pedido, item ou cliente nulas/duplicadas | Interromper a carga e investigar; não escolher linha arbitrária | 0 no perfilamento executado | Evita multiplicação e perda silenciosa |
+| Data real ausente em pedido não entregue | Manter nula, sem resultado de pontualidade | 2.957 pedidos conforme agrupamento por status | Excluído apenas do denominador da taxa |
+| Data real ou prevista ausente em pedido marcado delivered | Manter nula e relatar separadamente | 8 sem data real; 0 sem previsão | Pedido inelegível; reduz o denominador |
+| Data ou valor monetário não conversível | Converter para nulo, contar falhas e preservar o arquivo original | 0 nas colunas avaliadas | Pode reduzir elegibilidade ou impedir comparação por frete |
+| Preço/frete negativo ou extremo | Manter e medir; frete negativo aparece em faixa própria | 0 negativos; 8.427 preços e 11.613 fretes por item acima de Q3 + 1,5 × IQR | Nenhuma exclusão; extremos podem afetar médias, mas taxas por quartil usam contagens |
+| Item sem pedido, pedido sem item/cliente ou cronologia incoerente | Medir e examinar antes de interpretar | 0 itens órfãos, 775 pedidos sem itens, 0 sem cliente, 0 entregas antes da compra | Fato preserva pedidos; 775 ficam sem medida monetária |
 | Período inicial ou final incompleto | Mostrar intervalo observado e cobertura mensal | Setembro/2016: 4 compras, 1 elegível; setembro/2018: 16 compras, 0 elegíveis; outubro/2018: 4 compras, 0 elegíveis | Meses de borda não sustentam tendência de atraso |
 
-Nos CSVs analisados, seis pedidos com status canceled trazem data real de entrega; a regra da taxa mantém esses seis fora do denominador porque o status não é delivered. Quatro linhas de itens têm shipping_limit_date em 2020, além do período principal de compras; mantêm-se na Silver e não alteram a métrica de pontualidade, que não usa esse campo. Os 775 pedidos sem itens permanecem na fato, sem frete inventado. Não há ausências nas cinco colunas de clientes nem nas sete de itens; em pedidos, faltam 160 datas de aprovação, 1.783 de entrega à transportadora e 2.965 datas reais de entrega. Essas contagens serão reconciliadas com o Databricks.
+Seis pedidos com status canceled trazem data real de entrega; a regra da taxa mantém esses seis fora do denominador porque o status não é delivered. Quatro linhas de itens têm shipping_limit_date em 2020, além do período principal de compras; mantêm-se na Silver e não alteram a métrica de pontualidade, que não usa esse campo. Os 775 pedidos sem itens permanecem na fato, sem frete inventado. Não há ausências nas cinco colunas de clientes nem nas sete de itens; em pedidos, faltam 160 datas de aprovação, 1.783 de entrega à transportadora e 2.965 datas reais de entrega. O perfilamento no Databricks exibiu essas contagens principais.
 
-Completude, consistência, unicidade, plausibilidade interna e extremos foram examinados nos CSVs; a acurácia externa de data ou endereço não pode ser demonstrada apenas com os três arquivos. **Nenhuma contagem foi inferida de exemplos encontrados na internet.** A execução na nuvem deve confirmar todas as contagens e as decisões finais.
+Completude, consistência, unicidade, plausibilidade interna e extremos foram examinados; a acurácia externa de data ou endereço não pode ser demonstrada apenas com os três arquivos. **Nenhuma contagem foi inferida de exemplos encontrados na internet.** As capturas mostram [completude por coluna](evidencias/03_qualidade_completude.png), [chaves](evidencias/03_qualidade_chaves.png), [cobertura das junções](evidencias/03_qualidade_juncoes.png), [ausências por status](evidencias/03_qualidade_status.png) e [formatos e extremos](evidencias/03_qualidade_formatos_extremos.png).
+
+![Verificação de completude por coluna no notebook de perfilamento](evidencias/03_qualidade_completude.png)
+
+![Cobertura das junções entre pedidos, clientes e itens](evidencias/03_qualidade_juncoes.png)
+
+![Ausência de datas de entrega por status do pedido](evidencias/03_qualidade_status.png)
 
 ## Análise de Dados
 
@@ -194,33 +213,47 @@ As consultas estão em [atraso_por_uf.sql](sql/atraso_por_uf.sql), [atraso_por_m
 
 ### Discussão dos resultados
 
-As consultas SQL do projeto foram aplicadas aos três CSVs e reconciliadas com o mesmo denominador global de 96.470 pedidos. A execução e a persistência da pipeline no Databricks serão conferidas com as capturas da plataforma.
+As três consultas SQL foram executadas no notebook 05 do Databricks. As saídas visíveis de UF e frete coincidem com as contagens obtidas dos CSVs; a consulta mensal apresenta a série e seu gráfico. O resumo da fato mostra **99.441 pedidos, 96.470 elegíveis e 6.534 atrasados**, taxa geral de **6,77%**, e as consultas reconciliam o mesmo denominador global.
+
+| Conferência cruzada | Cálculo sobre os CSVs | Captura do Databricks | Situação |
+| --- | ---: | --- | --- |
+| Pedidos totais | 99.441 | [99.441](evidencias/10_resumo_global.png) | Igual |
+| Pedidos elegíveis | 96.470 | [96.470](evidencias/10_resumo_global.png) | Igual |
+| Pedidos atrasados | 6.534 | [6.534](evidencias/10_resumo_global.png) | Igual |
+| AL: atrasados / elegíveis | 85 / 397 | [85 / 397](evidencias/07_analise_uf_tabela.png) | Igual |
+| Q1 e Q4 do frete | 4,40% e 7,96% | [4,40% e 7,96%](evidencias/09_analise_frete_tabela.png) | Igual |
+| Novembro de 2017 | 904 / 7.288 = 12,40% | [904 / 7.288 = 12,40%](evidencias/08_analise_mes_tabela.png) | Igual |
+| Março de 2018 | 1.328 / 7.003 = 18,96% | [1.328 / 7.003 = 18,96%](evidencias/08_analise_mes_tabela.png) | Igual |
+| Junho de 2018 | 71 / 6.096 = 1,16% | [71 / 6.096 = 1,16%](evidencias/08_analise_mes_tabela.png) | Igual |
 
 **Localidade.** AL tem a maior taxa observada, 21,41%, mas seus 397 pedidos elegíveis exigem cautela. Entre UFs com pelo menos 1.000 elegíveis, CE apresenta a maior taxa, 176/1.279 = 13,76%. RJ combina uma taxa elevada, 1.495/12.350 = 12,11%, com amostra muito maior; SP concentra 40.494 elegíveis e registra 4,49%. A comparação descreve a UF do cliente e não identifica onde ocorreu a demora logística.
 
+![Tabela de atraso por UF no notebook 05, com numerador, denominador e taxa](evidencias/07_analise_uf_tabela.png)
+
+![Gráfico da taxa de atraso para as dez UFs com maiores amostras](evidencias/07_analise_uf_grafico.png)
+
 **Tempo.** Em março de 2018, 1.328 de 7.003 elegíveis atrasaram (18,96%), ante 71 de 6.096 em junho de 2018 (1,16%). A cobertura de elegibilidade desses meses foi 97,12% e 98,85%, respectivamente. Também há taxas elevadas em novembro de 2017 (12,40%) e fevereiro de 2018 (14,13%). Essas oscilações justificam investigar fatores operacionais, mas os três arquivos não demonstram suas causas. Setembro de 2016 tem apenas um elegível; setembro e outubro de 2018 têm zero, portanto não sustentam comparação de taxas.
+
+![Tabela mensal no notebook 05, com cobertura, contagens e taxa](evidencias/08_analise_mes_tabela.png)
+
+![Evolução da taxa de atraso por mês da compra](evidencias/08_analise_mes_grafico.png)
+
+O notebook também [identifica os meses inicial e final incompletos](evidencias/08_analise_mes_periodos.png). A tabela acima mostra diretamente março e junho de 2018 e os meses finais sem taxa; os [primeiros meses da série](evidencias/08_analise_mes_inicio.png) também foram registrados.
 
 **Frete.** Os quartis têm cerca de 24 mil pedidos elegíveis cada. A taxa sobe de 4,40% no primeiro para 7,96% no quarto, diferença de 3,56 pontos percentuais. Os limites monetários podem coincidir entre quartis porque pedidos com o mesmo frete foram distribuídos pelo ordenamento secundário de order_id. O frete pode refletir distância, dimensão do produto ou rota; a diferença de taxas é associação, não efeito causal do preço do frete.
 
-**Síntese dos resultados:** entre 99.441 pedidos, 96.470 são elegíveis e 6.534 têm entrega após a data prevista, taxa de 6,77%. Há diferenças por UF, oscilações mensais e associação com os quartis de frete, sujeitas às limitações acima. O mês da compra não é o mês da entrega, e o status e a maturidade do período afetam a cobertura. Antes da versão final, reproduzir as três consultas no Databricks, conferir as contagens e inserir capturas reais das respostas. Vídeo e áudio não substituem essas imagens.
+![Tabela dos quatro quartis de frete, com amostras, atrasados, taxas e limites em reais](evidencias/09_analise_frete_tabela.png)
+
+![Gráfico da taxa de atraso por quartil de frete](evidencias/09_analise_frete_grafico.png)
+
+**Síntese dos resultados:** entre 99.441 pedidos, 96.470 são elegíveis e 6.534 têm entrega após a data prevista, taxa de 6,77%. Há diferenças por UF, oscilações mensais e associação com os quartis de frete, sujeitas às limitações acima. O mês da compra não é o mês da entrega, e o status e a maturidade do período afetam a cobertura. A captura do resumo executado no Databricks registra a reconciliação global.
+
+![Resumo da fato com total, elegíveis, atrasados e taxa geral](evidencias/10_resumo_global.png)
 
 ## Autoavaliação
 
-As três perguntas originais permanecem no projeto: **como varia a taxa por estado; como evolui por mês da compra; como se distribui por faixas de frete total**. Até este estado da entrega, o objetivo de estruturar código, modelo, métricas e verificações foi desenvolvido. As três perguntas têm respostas **calculadas a partir dos CSVs reais**, mas ainda não se pode afirmar que o pipeline foi executado e validado na nuvem. A maior dificuldade observada até agora é a dependência da execução no workspace com captura de evidências. O perfil dos CSVs também mostrou períodos de borda sem entregas elegíveis e pedidos sem itens, que exigem atenção à população de cada métrica. Após executar, esta seção deve registrar os resultados atingidos, falhas e correções concretas, além dos limites da base histórica e da ausência de variáveis de peso, distância e rota.
+As três perguntas originais permanecem no projeto: **como varia a taxa por estado; como evolui por mês da compra; como se distribui por faixas de frete total**. As três foram respondidas com consultas, tabelas e gráficos no Databricks. A fato no grão de pedido, as duas dimensões e as tabelas Silver aparecem persistidas no Unity Catalog. O perfilamento mostrou a necessidade de preservar 775 pedidos sem itens e de não classificar como pontuais os oito pedidos marcados delivered sem data real.
+
+As principais dificuldades foram a carga manual dos CSVs no volume da Free Edition, a diferença de grão entre pedidos e itens e a conversão da taxa decimal para o tipo numérico aceito pelo gráfico. O tratamento manteve os arquivos originais, agregou itens antes da junção e converteu apenas a série usada na visualização, sem alterar o cálculo da taxa. A base é histórica; meses incompletos e a ausência de distância, peso e rota limitam a interpretação. A comparação por frete permanece descritiva.
 
 Trabalho futuro útil, após concluir o MVP: acrescentar geolocalização ou dados de vendedores para estudar distância e origem do envio; testar a estabilidade das taxas por tamanho de amostra; e investigar dados mais recentes. Essas extensões não são pré-requisito para as três perguntas atuais.
-
-### Auditoria da rubrica e entrega
-
-| Critério | Pontos | Evidência preparada | Situação comprovada |
-| --- | ---: | --- | --- |
-| Objetivo | 1,0 | Perguntas e contratos nesta seção inicial | Texto verificado; viabilidade empírica pendente |
-| Coleta | 0,5 | Fonte, licença, CSVs, notebook 01 e procedimento acima | Procedimento pronto; upload e capturas pendentes |
-| Modelagem e catálogo | 2,0 | Seis tabelas descritas coluna a coluna; notebooks 02–04 | Projeto documentado; catálogo real e capturas pendentes |
-| Carga e pipeline | 1,0 | Cinco notebooks e reconciliações | Código preparado; execução e persistência na nuvem pendentes |
-| Qualidade | 1,0 | Verificações e quadro de tratamentos acima | Contagens dos CSVs observadas; confirmação na nuvem pendente |
-| Análise e discussão | 2,0 | Três consultas e notebook 05 | Consultas aplicadas aos CSVs reais; conferência com resultados e capturas do Databricks pendente |
-| Autoavaliação | 0,5 | Esta seção preserva perguntas, limites e próximos passos | Parcial até a execução |
-| Capricho e qualidade geral | 2,0 | Organização, nomes, catálogo, testes e evidências previstas | Avaliação final depende da execução e das capturas |
-
-**Obrigatórios ainda não comprovados:** execução em plataforma de nuvem, seis tabelas persistidas, repositório GitHub público e capturas genuínas do upload, catálogo, tabelas e respostas. A publicação pública será feita apenas depois da revisão final. A pontuação acima é a distribuição do enunciado, não uma nota reivindicada.
