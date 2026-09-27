@@ -1,4 +1,6 @@
--- O mês é o da compra; a cobertura identifica períodos com muitas entregas pendentes.
+-- O mês é o da compra, independentemente do mês da entrega real.
+-- cobertura_pct mede quantos pedidos do mês já têm resultado de pontualidade.
+-- Um denominador elegível igual a zero gera taxa nula, não uma taxa de 0%.
 SELECT
   COALESCE(d.ano_mes, 'Sem data') AS ano_mes,
   COUNT(*) AS pedidos_total,

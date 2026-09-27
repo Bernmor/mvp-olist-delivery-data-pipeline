@@ -1,4 +1,6 @@
--- A unidade é o pedido. A hora não altera o diagnóstico de pontualidade.
+-- A unidade é o pedido: um resultado de entrega por order_id.
+-- A elegibilidade depende do status delivered e da presença das duas datas.
+-- date() descarta a hora; um pedido inelegível conserva atraso nulo, não zero.
 SELECT
   p.*,
   CASE

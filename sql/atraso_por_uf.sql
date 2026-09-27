@@ -1,4 +1,6 @@
 -- Todos os pedidos são contados; somente entregues com as duas datas entram na taxa.
+-- LEFT JOIN preserva pedidos sem localidade no grupo Sem UF.
+-- NULLIF deixa a taxa indefinida quando não houver pedido elegível no grupo.
 SELECT
   COALESCE(l.estado, 'Sem UF') AS estado,
   COUNT(*) AS pedidos_total,

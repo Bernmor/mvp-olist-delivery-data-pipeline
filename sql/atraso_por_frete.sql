@@ -1,4 +1,7 @@
--- Quartis entre pedidos elegíveis com frete não negativo; ausências e negativos ficam visíveis.
+-- O frete já foi agregado por order_id na fato Gold; cada linha aqui é um pedido.
+-- NTILE cria grupos de tamanho semelhante entre elegíveis com frete não negativo.
+-- order_id desempata fretes iguais de forma determinística; limites podem coincidir.
+-- Frete ausente e negativo permanece em grupos próprios, sem descarte silencioso.
 WITH elegiveis AS (
   SELECT order_id, entrega_atrasada, frete_total
   FROM {fato}
