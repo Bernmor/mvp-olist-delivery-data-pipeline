@@ -1,6 +1,6 @@
 # Evidências da execução no Databricks
 
-Este diretório reúne **22 capturas reais do Databricks Free Edition**, feitas em 27/09/2026. Os arquivos foram renomeados para facilitar a leitura. As seis capturas do catálogo foram recortadas apenas à direita, para retirar o painel com dados da conta; nomes de tabelas, descrições, tipos e comentários permanecem nos pixels originais. As demais capturas não foram recortadas. As capturas principais estão incorporadas nas seções correspondentes do [relatório](../README.md). Este índice facilita localizar as demais, mas não substitui o relatório.
+Este diretório reúne **23 capturas reais do Databricks Free Edition**, feitas em 27/09/2026. Os arquivos foram renomeados para facilitar a leitura. As seis capturas do catálogo foram recortadas apenas à direita, para retirar o painel com dados da conta; nomes de tabelas, descrições, tipos e comentários permanecem nos pixels originais. A captura de cronologia foi recortada para retirar a barra do navegador. As capturas principais estão incorporadas nas seções correspondentes do [relatório](../README.md). Este índice facilita localizar as demais, mas não substitui o relatório.
 
 O enunciado pede screenshots do catálogo, das tabelas persistidas, dos passos feitos pela interface e das respostas às perguntas. Ele não exige dashboard, quantidade fixa de imagens ou um diretório chamado evidencias.
 
@@ -30,6 +30,7 @@ As telas de **Overview** mostram o nome da tabela, sua descrição, tipos e come
 | [03_qualidade_chaves.png](03_qualidade_chaves.png) | Chaves esperadas sem nulos ou grupos duplicados; máximo de 21 itens por pedido. |
 | [03_qualidade_juncoes.png](03_qualidade_juncoes.png) | Nenhum pedido sem cliente, 775 pedidos sem itens e nenhum item sem pedido. |
 | [03_qualidade_status.png](03_qualidade_status.png) | Oito pedidos delivered sem data real; ausências de entrega examinadas por status. |
+| [03_qualidade_cronologia.png](03_qualidade_cronologia.png) | Verificação complementar executada no notebook 02: 1.359 transportadoras antes da aprovação, 166 antes da compra, 23 entregas antes da transportadora e 1.382 pedidos distintos afetados; 1.373 elegíveis e 24 atrasados entre eles. |
 | [03_qualidade_formatos_extremos.png](03_qualidade_formatos_extremos.png) | Verificações de formato e contagem exploratória de extremos: 8.427 preços e 11.613 fretes por item acima do limite superior de IQR. |
 
 ## Respostas às perguntas
