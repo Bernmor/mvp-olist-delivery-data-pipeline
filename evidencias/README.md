@@ -1,6 +1,6 @@
 # Evidências da execução no Databricks
 
-Este diretório reúne **22 capturas reais do Databricks Free Edition**, feitas em 27/09/2026. Os arquivos foram renomeados para facilitar a leitura; o conteúdo das imagens não foi alterado. As capturas principais estão incorporadas nas seções correspondentes do [relatório](../README.md). Este índice facilita localizar as demais, mas não substitui o relatório.
+Este diretório reúne **22 capturas reais do Databricks Free Edition**, feitas em 27/09/2026. Os arquivos foram renomeados para facilitar a leitura. As seis capturas do catálogo foram recortadas apenas à direita, para retirar o painel com dados da conta; nomes de tabelas, descrições, tipos e comentários permanecem nos pixels originais. As demais capturas não foram recortadas. As capturas principais estão incorporadas nas seções correspondentes do [relatório](../README.md). Este índice facilita localizar as demais, mas não substitui o relatório.
 
 O enunciado pede screenshots do catálogo, das tabelas persistidas, dos passos feitos pela interface e das respostas às perguntas. Ele não exige dashboard, quantidade fixa de imagens ou um diretório chamado evidencias.
 

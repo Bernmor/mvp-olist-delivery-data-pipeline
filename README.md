@@ -39,14 +39,14 @@ Os campos de preço e frete pertencem a itens, enquanto o status e as datas de e
 
 ## Carga dos Dados
 
-1. Baixar o conjunto na página original da Olist no Kaggle e extrair **somente os três CSVs selecionados** para a carga. Anotar a data do download e, se possível, o identificador da versão exibida pela fonte.
+1. Obter manualmente o pacote na página original da Olist no Kaggle e extrair **somente os três CSVs selecionados** para a carga. A data do download e o identificador exato da versão não foram registrados; os hashes abaixo identificam os arquivos efetivamente usados.
 2. No Databricks, abrir [01_ingestao.ipynb](notebooks/01_ingestao.ipynb) em uma Git folder do repositório. Informar no widget catalogo o catálogo do workspace, se o catálogo corrente não for o correto. Executar as células de configuração que criam os esquemas olist_mvp_raw, olist_mvp_silver, olist_mvp_gold e o volume gerenciado originais.
 3. Na interface, escolher **Novo → Adicionar ou carregar dados → Carregar arquivos para volume**. Enviar os CSVs sem modificá-los à raiz do volume `/Volumes/<catalogo>/olist_mvp_raw/originais`. A [documentação de upload](https://docs.databricks.com/aws/en/volumes/volume-files) descreve esse caminho. A [orientação para Free Edition](https://docs.databricks.com/aws/en/getting-started/import-visualize-data) recomenda a interface porque o acesso externo do compute é restrito.
 4. Executar o restante do notebook 01 para comprovar nomes, tamanhos, colunas, legibilidade e contagens. Registrar os valores observados e capturas reais.
 
 Os CSVs no volume são a camada bruta preservada. O diretório local data/raw/ está no .gitignore. Nunca adicionar CSVs, credenciais ou tokens ao Git. Não usar a função de upload direto para criar tabelas: isso perderia a distinção entre arquivo original e transformação reproduzível.
 
-**Arquivos analisados em 27/09/2026:** os três CSVs foram disponibilizados no diretório ignorado data/raw/. A versão exata do download ainda não foi confirmada na página da fonte. Os arquivos usados na conferência têm as seguintes contagens e SHA-256, para conferir a cópia no volume:
+**Arquivos analisados em 27/09/2026:** os três CSVs foram disponibilizados no diretório ignorado data/raw/. Os arquivos usados na conferência têm as seguintes contagens e SHA-256; a saída do notebook 01 no Databricks confirmou os mesmos hashes no volume:
 
 | Arquivo | Linhas | SHA-256 |
 | --- | ---: | --- |
@@ -70,7 +70,7 @@ Uma junção direta de pedidos com itens geraria várias linhas para pedidos com
 
 ### Catálogo transcrito das tabelas Silver
 
-Cada linha abaixo descreve coluna, tipo, significado, domínio esperado e linhagem. Os domínios são contratos de plausibilidade; os limites observados e as exceções aparecem na seção de qualidade. As tabelas persistidas têm descrições e comentários de colunas no Unity Catalog.
+Cada linha abaixo descreve coluna, tipo, significado, domínio esperado e linhagem. Identificadores da Olist seguem o formato de 32 caracteres hexadecimais; datas precisam ser conversíveis. Faixas numéricas observadas neste recorte orientam a inspeção, sem truncar novos valores legítimos. Os limites e as exceções aparecem na seção de qualidade. As tabelas persistidas têm descrições e comentários de colunas no Unity Catalog.
 
 **olist_mvp_silver.pedidos:** um registro tipado por pedido, vindo de olist_orders_dataset.csv; não há descarte de linhas.
 
@@ -78,8 +78,8 @@ Cada linha abaixo descreve coluna, tipo, significado, domínio esperado e linhag
 | --- | --- | --- | --- |
 | order_id | STRING | Chave não vazia e única de pedido | order_id; remoção de espaços externos |
 | customer_id | STRING | Identificador do cliente vinculado, não vazio para junção | customer_id; remoção de espaços externos |
-| order_status | STRING | Estado do pedido; categorias observadas serão registradas no perfil | order_status; minúsculas e espaços externos removidos |
-| order_purchase_timestamp | TIMESTAMP | Instante da compra; faixa histórica efetiva a medir | order_purchase_timestamp; conversão tolerante |
+| order_status | STRING | Estado do pedido: approved, canceled, created, delivered, invoiced, processing, shipped ou unavailable | order_status; minúsculas e espaços externos removidos |
+| order_purchase_timestamp | TIMESTAMP | Instante da compra; de 04/09/2016 a 17/10/2018 neste recorte | order_purchase_timestamp; conversão tolerante |
 | order_approved_at | TIMESTAMP | Instante da aprovação; pode faltar segundo o status | order_approved_at; conversão tolerante |
 | order_delivered_carrier_date | TIMESTAMP | Instante de entrega à transportadora; pode faltar | order_delivered_carrier_date; conversão tolerante |
 | order_delivered_customer_date | TIMESTAMP | Instante de entrega ao cliente; ausência esperada fora de delivered | order_delivered_customer_date; conversão tolerante |
@@ -90,12 +90,12 @@ Cada linha abaixo descreve coluna, tipo, significado, domínio esperado e linhag
 | Coluna | Tipo | Significado e domínio esperado | Origem e transformação |
 | --- | --- | --- | --- |
 | order_id | STRING | Pedido ao qual pertence o item; não vazio | order_id; remoção de espaços externos |
-| order_item_id | INT | Sequência positiva do item dentro do pedido | order_item_id; conversão tolerante |
+| order_item_id | INT | Sequência positiva do item dentro do pedido; 1 a 21 observados | order_item_id; conversão tolerante |
 | product_id | STRING | Identificador do produto; texto não vazio esperado | product_id; remoção de espaços externos |
 | seller_id | STRING | Identificador do vendedor; texto não vazio esperado | seller_id; remoção de espaços externos |
 | shipping_limit_date | TIMESTAMP | Limite de envio informado para o item | shipping_limit_date; conversão tolerante |
-| price | DECIMAL(18,2) | Preço do item em R$; valor não negativo esperado | price; conversão tolerante |
-| freight_value | DECIMAL(18,2) | Frete do item em R$; valor não negativo esperado | freight_value; conversão tolerante |
+| price | DECIMAL(18,2) | Preço do item em R$; não negativo, R$ 0,85 a R$ 6.735,00 observados | price; conversão tolerante |
+| freight_value | DECIMAL(18,2) | Frete do item em R$; não negativo, R$ 0,00 a R$ 409,68 observados | freight_value; conversão tolerante |
 
 **olist_mvp_silver.clientes:** um registro por customer_id, vindo de olist_customers_dataset.csv; localidade informada pelo cliente.
 
@@ -103,9 +103,9 @@ Cada linha abaixo descreve coluna, tipo, significado, domínio esperado e linhag
 | --- | --- | --- | --- |
 | customer_id | STRING | Chave não vazia e única do registro de cliente | customer_id; remoção de espaços externos |
 | customer_unique_id | STRING | Identificador persistente de cliente; não é grão da fato | customer_unique_id; remoção de espaços externos |
-| customer_zip_code_prefix | STRING | Cinco primeiros dígitos do CEP, inclusive zeros iniciais | customer_zip_code_prefix; preenchimento à esquerda até cinco posições |
+| customer_zip_code_prefix | STRING | Cinco dígitos do prefixo do CEP, inclusive zeros iniciais; 01003 a 99990 observados | customer_zip_code_prefix; preenchimento à esquerda até cinco posições |
 | customer_city | STRING | Cidade declarada, texto não vazio esperado | customer_city; minúsculas e remoção de espaços externos |
-| customer_state | STRING | UF declarada, duas letras esperadas | customer_state; maiúsculas e remoção de espaços externos |
+| customer_state | STRING | UF declarada: AC, AL, AM, AP, BA, CE, DF, ES, GO, MA, MG, MS, MT, PA, PB, PE, PI, PR, RJ, RN, RO, RR, RS, SC, SE, SP ou TO | customer_state; maiúsculas e remoção de espaços externos |
 
 ### Catálogo transcrito das tabelas Gold
 
@@ -113,8 +113,8 @@ Cada linha abaixo descreve coluna, tipo, significado, domínio esperado e linhag
 
 | Coluna | Tipo | Significado e domínio esperado | Origem e transformação |
 | --- | --- | --- | --- |
-| data_compra | DATE | Chave única, um dia civil do intervalo observado | Mínimo e máximo de pedidos Silver; geração de calendário diário |
-| ano | INT | Ano civil da data de compra | Derivado de data_compra |
+| data_compra | DATE | Chave única, um dia civil de 04/09/2016 a 17/10/2018 neste recorte | Mínimo e máximo de pedidos Silver; geração de calendário diário |
+| ano | INT | Ano civil da data de compra; 2016 a 2018 neste recorte | Derivado de data_compra |
 | mes | INT | Mês civil, de 1 a 12 | Derivado de data_compra |
 | ano_mes | STRING | Ano e mês no formato AAAA-MM | Derivado de data_compra |
 
@@ -125,7 +125,7 @@ Cada linha abaixo descreve coluna, tipo, significado, domínio esperado e linhag
 | chave_localidade | STRING | Hash SHA-256 único da combinação de atributos | Estrutura de CEP, cidade e UF de clientes Silver |
 | cep_prefixo | STRING | Prefixo do CEP, cinco dígitos ou nulo | customer_zip_code_prefix de clientes Silver |
 | cidade | STRING | Cidade em minúsculas ou nula | customer_city de clientes Silver |
-| estado | STRING | UF em maiúsculas ou nula | customer_state de clientes Silver |
+| estado | STRING | Uma das 27 UFs listadas em clientes Silver, em maiúsculas, ou nula | customer_state de clientes Silver |
 
 **olist_mvp_gold.fato_pedidos:** uma linha por order_id, preservando todos os pedidos Silver.
 
@@ -139,9 +139,9 @@ Cada linha abaixo descreve coluna, tipo, significado, domínio esperado e linhag
 | order_estimated_delivery_date | DATE | Data civil prevista ou nula | pedidos Silver |
 | data_compra | DATE | Chave para dim_data; nula se compra sem data válida | Data civil de order_purchase_timestamp |
 | chave_localidade | STRING | Chave para dim_localidade; nula sem cliente correspondente | Junção por customer_id, hash dos atributos de cliente Silver |
-| qtd_itens | BIGINT | Número de itens, inteiro positivo; nulo se sem itens | Contagem de itens Silver agrupados por order_id |
-| valor_itens_total | DECIMAL(28,2) | Soma completa dos preços em R$; nula se há item com preço ausente | Soma de price por order_id, condicionada à completude |
-| frete_total | DECIMAL(28,2) | Soma completa do frete em R$; nula se há item com frete ausente | Soma de freight_value por order_id, condicionada à completude |
+| qtd_itens | BIGINT | Número de itens, inteiro positivo de 1 a 21 observados; nulo se sem itens | Contagem de itens Silver agrupados por order_id |
+| valor_itens_total | DECIMAL(28,2) | Soma completa dos preços em R$; não negativa, até R$ 13.440,00 observados; nula sem itens ou com preço ausente | Soma de price por order_id, condicionada à completude |
+| frete_total | DECIMAL(28,2) | Soma completa do frete em R$; não negativa, até R$ 1.794,96 observados; nula sem itens ou com frete ausente | Soma de freight_value por order_id, condicionada à completude |
 | pedido_entregue_com_datas | INT | 1 para entregue com ambas as datas; 0 nos demais casos | Regra única em [indicadores_entrega.sql](sql/indicadores_entrega.sql) |
 | entrega_atrasada | INT | 1 para atraso, 0 para pontual, nulo fora da população elegível | Comparação das datas civis real e estimada na mesma regra SQL |
 
@@ -188,10 +188,11 @@ O [notebook 02](notebooks/02_perfilamento_e_modelagem.ipynb) mede nulos e vazios
 | Data real ou prevista ausente em pedido marcado delivered | Manter nula e relatar separadamente | 8 sem data real; 0 sem previsão | Pedido inelegível; reduz o denominador |
 | Data ou valor monetário não conversível | Converter para nulo, contar falhas e preservar o arquivo original | 0 nas colunas avaliadas | Pode reduzir elegibilidade ou impedir comparação por frete |
 | Preço/frete negativo ou extremo | Manter e medir; frete negativo aparece em faixa própria | 0 negativos; 8.427 preços e 11.613 fretes por item acima de Q3 + 1,5 × IQR | Nenhuma exclusão; extremos podem afetar médias, mas taxas por quartil usam contagens |
-| Item sem pedido, pedido sem item/cliente ou cronologia incoerente | Medir e examinar antes de interpretar | 0 itens órfãos, 775 pedidos sem itens, 0 sem cliente, 0 entregas antes da compra | Fato preserva pedidos; 775 ficam sem medida monetária |
+| Item sem pedido, pedido sem item/cliente ou entrega antes da compra | Medir e examinar antes de interpretar | 0 itens órfãos, 775 pedidos sem itens, 0 sem cliente, 0 entregas antes da compra | Fato preserva pedidos; 775 ficam sem medida monetária |
+| Sequência operacional de datas incoerente | Preservar os campos brutos e sinalizar; não corrigir uma data sem fonte externa | 1.359 pedidos com transportadora antes da aprovação (166 também antes da compra); 23 entregas antes da transportadora; 1.382 pedidos distintos afetados | 1.373 afetados são elegíveis e 24 atrasados; os campos contraditórios não entram diretamente na regra de pontualidade |
 | Período inicial ou final incompleto | Mostrar intervalo observado e cobertura mensal | Setembro/2016: 4 compras, 1 elegível; setembro/2018: 16 compras, 0 elegíveis; outubro/2018: 4 compras, 0 elegíveis | Meses de borda não sustentam tendência de atraso |
 
-Seis pedidos com status canceled trazem data real de entrega; a regra da taxa mantém esses seis fora do denominador porque o status não é delivered. Quatro linhas de itens têm shipping_limit_date em 2020, além do período principal de compras; mantêm-se na Silver e não alteram a métrica de pontualidade, que não usa esse campo. Os 775 pedidos sem itens permanecem na fato, sem frete inventado. Não há ausências nas cinco colunas de clientes nem nas sete de itens; em pedidos, faltam 160 datas de aprovação, 1.783 de entrega à transportadora e 2.965 datas reais de entrega. O perfilamento no Databricks exibiu essas contagens principais.
+Seis pedidos com status canceled trazem data real de entrega; a regra da taxa mantém esses seis fora do denominador porque o status não é delivered. Quatro linhas de itens têm shipping_limit_date em 2020, além do período principal de compras; mantêm-se na Silver e não alteram a métrica de pontualidade, que não usa esse campo. Os 775 pedidos sem itens permanecem na fato, sem frete inventado. Não há ausências nas cinco colunas de clientes nem nas sete de itens; em pedidos, faltam 160 datas de aprovação, 1.783 de entrega à transportadora e 2.965 datas reais de entrega. O perfilamento no Databricks exibiu essas contagens principais. A auditoria complementar de sequência operacional nos CSVs encontrou as 1.382 anomalias distintas acima; o [notebook 02](notebooks/02_perfilamento_e_modelagem.ipynb) reproduz a contagem. Excluir exploratoriamente os 1.373 elegíveis afetados levaria a 6.510/95.097 = 6,85%, ante 6,77% na definição principal; não aplicamos essa exclusão por falta de evidência de erro na data real ou prevista.
 
 Completude, consistência, unicidade, plausibilidade interna e extremos foram examinados; a acurácia externa de data ou endereço não pode ser demonstrada apenas com os três arquivos. **Nenhuma contagem foi inferida de exemplos encontrados na internet.** As capturas mostram [completude por coluna](evidencias/03_qualidade_completude.png), [chaves](evidencias/03_qualidade_chaves.png), [cobertura das junções](evidencias/03_qualidade_juncoes.png), [ausências por status](evidencias/03_qualidade_status.png) e [formatos e extremos](evidencias/03_qualidade_formatos_extremos.png).
 
