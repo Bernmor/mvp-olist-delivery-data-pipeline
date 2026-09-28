@@ -58,7 +58,7 @@ O upload pela interface selecionou os três arquivos e o volume `workspace.olist
 
 ![Upload dos três CSVs para o volume gerenciado no Databricks](evidencias/01_upload_volume.png)
 
-![Arquivos originais no volume e tabelas criadas no Unity Catalog](evidencias/02_volume_e_tabelas.png)
+![Três arquivos originais no volume do Unity Catalog](evidencias/02_volume_arquivos.png)
 
 ## Modelagem e Catálogo de Dados
 
@@ -175,7 +175,7 @@ As escritas são reexecutáveis com a mesma origem: overwrite substitui as tabel
 | Calendário e localidades distintos | Permitir agrupamento por mês e UF | Uma linha por data e por chave de localidade |
 | Elegibilidade e atraso | Evitar classificar pedidos não entregues | Inelegíveis têm entrega_atrasada nula; elegíveis têm 0 ou 1 |
 
-**Persistência observada:** o Explorador de Catálogo mostra os três CSVs no volume de origem, três tabelas em `olist_mvp_silver` e três em `olist_mvp_gold`, todos no catálogo `workspace`. A [captura conjunta](evidencias/02_volume_e_tabelas.png) e as telas de Overview acima comprovam a criação das tabelas Delta. A consulta final da fato exibiu **99.441 pedidos**, preservando o grão de pedido.
+**Persistência observada:** o Explorador de Catálogo mostra os três CSVs no [volume de origem](evidencias/02_volume_arquivos.png). As telas de Overview das três tabelas Silver e três Gold, vinculadas na seção de catálogo, comprovam as tabelas Delta gerenciadas no catálogo `workspace`. A consulta final da fato exibiu **99.441 pedidos**, preservando o grão de pedido.
 
 ## Qualidade de Dados
 

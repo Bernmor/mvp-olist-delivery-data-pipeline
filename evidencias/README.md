@@ -9,7 +9,7 @@ O enunciado pede screenshots do catálogo, das tabelas persistidas, dos passos f
 | Captura | O que comprova |
 | --- | --- |
 | [01_upload_volume.png](01_upload_volume.png) | Seleção dos três CSVs da Olist e destino no volume gerenciado. A tela foi capturada antes do envio. |
-| [02_volume_e_tabelas.png](02_volume_e_tabelas.png) | Os três arquivos presentes no volume originais e as três tabelas Silver e três Gold visíveis no catálogo após a carga. |
+| [02_volume_arquivos.png](02_volume_arquivos.png) | Os três arquivos presentes no volume originais e os esquemas Silver e Gold no catálogo. As tabelas de cada esquema aparecem nas capturas de Overview abaixo. |
 
 A segunda captura complementa a primeira: a seleção no formulário, sozinha, não provaria que o upload terminou.
 
